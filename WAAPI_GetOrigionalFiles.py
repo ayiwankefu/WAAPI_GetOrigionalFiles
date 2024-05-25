@@ -1,3 +1,4 @@
+#Author XLF
 from waapi import WaapiClient, CannotConnectToWaapiException
 from pprint import pprint
 import os
