@@ -1,4 +1,4 @@
-#Author XLF
+#Author Leafxie
 from waapi import WaapiClient, CannotConnectToWaapiException
 from pprint import pprint
 import os
@@ -21,38 +21,37 @@ else:
         }
         return client.call("ak.wwise.core.object.get", args, options=options)["return"][0]["filePath"]
 
-
     project_path = get_project_path()  # 获取Wwise工程路径
-    # print(project_path)
     project_dir = os.path.dirname(project_path)
-    # print(project_dir)
     folder_to_place = os.path.join(project_dir, "WAAPI_CopiedWavFiles")
-    # print(folder_to_place)
     # endregion
 
     # region 获取所选对象的原始音频文件路径
-    get_selobjs_opt = {
-        "return": ["path"]
+    originalWavFilesPath = []
+    _selectedObjectPath = []
+    get_selectedObjects_opt = {
+        "return": ["path", "type", "originalWavFilePath"]
     }
-    _selobjs_PATH = client.call("ak.wwise.ui.getSelectedObjects", options=get_selobjs_opt)["objects"]
-    selobjs_PATH = [value for subdict in _selobjs_PATH for key, value in subdict.items()]
-    # pprint(selobjs_PATH)
-    separator = "\",\""
-    selobjs_PATH = separator.join(selobjs_PATH)
-    # pprint(selobjs_PATH)
-    WAQL_PATH = f"$\"{selobjs_PATH}\"  select descendants distinct where type = \"sound\""
-    obj_get_args = {
-        "waql": WAQL_PATH
-    }
-    obj_get_options = {
-        "return": ["sound:originalWavFilePath"]
-    }
-    _origionalWavFilePath = client.call("ak.wwise.core.object.get", obj_get_args, options=obj_get_options)["return"]
-    origionalWavFilePath = [value for subdict in _origionalWavFilePath for key, value in subdict.items()]
-    origionalWavFilePath = list(set(origionalWavFilePath))  # 去重复项
-    origionalWavFilePath.sort()  # 重新排列
+    selectedObjects = client.call("ak.wwise.ui.getSelectedObjects", options=get_selectedObjects_opt)["objects"]
 
-    # pprint(origionalWavFilePath)
+    for i in range(len(selectedObjects)):
+        _selectedObjectPath.append(selectedObjects[i]["path"])
+        separator = "\",\""
+        selectedObjectPath = separator.join(_selectedObjectPath)
+        WAQL_PATH = f"$\"{selectedObjectPath}\"  select descendants distinct where type = \"AudioFileSource\""
+        obj_get_args = {
+            "waql": WAQL_PATH
+        }
+        obj_get_options = {
+            "return": ["sound:originalWavFilePath"]
+        }
+        _originalWavFilePath = client.call("ak.wwise.core.object.get", obj_get_args, options=obj_get_options)[
+            "return"]
+        for i in range(len(_originalWavFilePath)):
+            originalWavFilesPath.append(_originalWavFilePath[i]["sound:originalWavFilePath"])
+    originalWavFilesPath = list(set(originalWavFilesPath))  # 去重复项
+    originalWavFilesPath.sort()  # 重新排列
+    #pprint(originalWavFilesPath)
 
     # endregion
 
@@ -86,4 +85,5 @@ else:
                 print(f"文件 '{path}' 拷贝成功")
 
 
-    compare_and_copy_files(origionalWavFilePath, folder_to_place)
+    compare_and_copy_files(originalWavFilesPath, folder_to_place)
+    print("程序执行完成")
